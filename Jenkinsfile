@@ -1,14 +1,20 @@
 pipeline {
     agent any
+    
+    environment {
+        DOCKER_HOME = '/usr/bin/docker'  // Set the path where Docker is installed
+    }
+    
     stages {
         stage('Pull Docker Image') {
             steps {
-                // Pull the pre-built Docker image from Docker Hub
-                script {
+                // Ensure Docker is in the PATH
+                withEnv(['PATH+DOCKER=$DOCKER_HOME']) {
                     sh 'docker pull urmsandeep/ai-artistic-style-service:latest'
                 }
             }
         }
+        
         stage('Run Tests') {
             steps {
                 // Run tests to ensure the container works correctly
@@ -19,6 +25,7 @@ pipeline {
                 }
             }
         }
+        
         stage('Deploy Service') {
             steps {
                 // Deploy the service using Docker Compose
@@ -30,13 +37,14 @@ pipeline {
                 }
             }
         }
+        
         stage('Verify Deployment') {
             steps {
                 // Check if the service is running and responding
                 script {
                     sh '''
                     sleep 5
-                    curl -X POST http://127.0.0.1:5001/styleTransfer -F "image=@devops.jpg" --output styled_output.jpg
+                    curl -X POST http://127.0.0.1:5001/styleTransfer -F "image=@devops.jpg" --output output.jpg
                     '''
                 }
             }
@@ -48,7 +56,7 @@ pipeline {
             sh 'docker system prune -f'
         }
         success {
-            echo 'Pipeline executed successfully. The service is running and functional!'
+            echo 'Pipeline executed successfully. The service is running and deployed.'
         }
         failure {
             echo 'Pipeline failed. Check logs for errors.'
